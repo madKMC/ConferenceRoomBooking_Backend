@@ -1,0 +1,219 @@
+### Conference Room Booking API - HTTP Requests
+### Use with REST Client extension in VS Code
+
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
+
+# After logging in, copy the token from the response and paste it here
+@authToken = your-jwt-token-here
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ============================================================================
+### AUTHENTICATION
+### ============================================================================
+
+### Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123!",
+  "first_name": "New",
+  "last_name": "User",
+  "phone": "+1-555-0200"
+}
+
+### Login as regular user
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "password123"
+}
+
+### Login as admin
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### Get current user details (requires authentication)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{authToken}}
+
+### ============================================================================
+### ROOMS (requires authentication)
+### ============================================================================
+
+### Get all rooms
+GET {{baseUrl}}/rooms
+Authorization: Bearer {{authToken}}
+
+### Get rooms with filters (capacity >= 10, floor 3)
+GET {{baseUrl}}/rooms?capacity=10&floor=3
+Authorization: Bearer {{authToken}}
+
+### Get room availability for a specific date
+GET {{baseUrl}}/rooms/1/availability?date=2025-11-12
+Authorization: Bearer {{authToken}}
+
+### Get room availability for tomorrow
+GET {{baseUrl}}/rooms/2/availability?date=2025-11-13
+Authorization: Bearer {{authToken}}
+
+### ============================================================================
+### BOOKINGS (requires authentication)
+### ============================================================================
+
+### Get all bookings (ADMIN ONLY)
+GET {{baseUrl}}/bookings
+Authorization: Bearer {{authToken}}
+
+### Get all bookings with filters (ADMIN ONLY)
+GET {{baseUrl}}/bookings?status=confirmed&room_id=1
+Authorization: Bearer {{authToken}}
+
+### Create a new booking (within business hours, valid duration)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 1,
+  "user_id": 1,
+  "title": "Team Sync Meeting",
+  "description": "Weekly team synchronization",
+  "start_time": "2025-11-15T10:00:00Z",
+  "end_time": "2025-11-15T11:00:00Z"
+}
+
+### Create a booking with minimum duration (30 minutes)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 4,
+  "user_id": 2,
+  "title": "Quick Check-in",
+  "start_time": "2025-11-15T14:00:00Z",
+  "end_time": "2025-11-15T14:30:00Z"
+}
+
+### Create a booking with maximum duration (4 hours)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 3,
+  "user_id": 3,
+  "title": "All-Day Workshop",
+  "start_time": "2025-11-16T09:00:00Z",
+  "end_time": "2025-11-16T13:00:00Z"
+}
+
+### Try to create overlapping booking (should fail with 409)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 1,
+  "user_id": 2,
+  "title": "Conflicting Meeting",
+  "start_time": "2025-11-12T09:30:00Z",
+  "end_time": "2025-11-12T10:30:00Z"
+}
+
+### Try to create booking outside business hours (should fail)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 1,
+  "user_id": 1,
+  "title": "Evening Meeting",
+  "start_time": "2025-11-15T18:00:00Z",
+  "end_time": "2025-11-15T19:00:00Z"
+}
+
+### Try to create booking with invalid duration (too short)
+POST {{baseUrl}}/bookings
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "room_id": 1,
+  "user_id": 1,
+  "title": "Quick Chat",
+  "start_time": "2025-11-15T10:00:00Z",
+  "end_time": "2025-11-15T10:15:00Z"
+}
+
+### Get a specific booking (own booking or admin)
+GET {{baseUrl}}/bookings/1
+Authorization: Bearer {{authToken}}
+
+### Update a booking (reschedule - own booking or admin)
+PATCH {{baseUrl}}/bookings/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "start_time": "2025-11-12T14:00:00Z",
+  "end_time": "2025-11-12T15:00:00Z"
+}
+
+### Update booking status (own booking or admin)
+PATCH {{baseUrl}}/bookings/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "completed"
+}
+
+### Update booking title and description (own booking or admin)
+PATCH {{baseUrl}}/bookings/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "title": "Updated Meeting Title",
+  "description": "Updated description"
+}
+
+### Cancel a booking (own booking or admin)
+DELETE {{baseUrl}}/bookings/1
+Authorization: Bearer {{authToken}}
+
+### ============================================================================
+### USERS (requires authentication)
+### ============================================================================
+
+### Get all bookings for a user (own bookings or admin)
+GET {{baseUrl}}/users/1/bookings
+Authorization: Bearer {{authToken}}
+
+### Get confirmed bookings for a user (own bookings or admin)
+GET {{baseUrl}}/users/1/bookings?status=confirmed
+Authorization: Bearer {{authToken}}
+
+### Get user bookings with pagination (own bookings or admin)
+GET {{baseUrl}}/users/1/bookings?limit=5&offset=0
+Authorization: Bearer {{authToken}}
+
+### Get bookings for non-existent user (should return 404)
+GET {{baseUrl}}/users/999/bookings
+Authorization: Bearer {{authToken}}

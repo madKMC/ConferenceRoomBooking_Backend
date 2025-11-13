@@ -1,0 +1,44 @@
+{
+	"name": "conference-room-booking-api",
+	"version": "1.0.0",
+	"description": "Conference Room Booking API - MySQL + Express + TypeScript",
+	"main": "dist/server.js",
+	"scripts": {
+		"dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+		"build": "tsc",
+		"start": "node dist/server.js",
+		"lint": "eslint src/**/*.ts",
+		"lint:fix": "eslint src/**/*.ts --fix",
+		"test": "echo \"Tests not implemented yet\" && exit 0"
+	},
+	"keywords": [
+		"booking",
+		"conference-room",
+		"api",
+		"typescript",
+		"mysql"
+	],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"bcryptjs": "^2.4.3",
+		"dotenv": "^16.4.5",
+		"express": "^4.19.2",
+		"jsonwebtoken": "^9.0.2",
+		"mysql2": "^3.11.0",
+		"uuid": "^10.0.0",
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"@types/bcryptjs": "^2.4.6",
+		"@types/express": "^4.17.21",
+		"@types/jsonwebtoken": "^9.0.6",
+		"@types/node": "^20.14.10",
+		"@types/uuid": "^10.0.0",
+		"@typescript-eslint/eslint-plugin": "^7.16.0",
+		"@typescript-eslint/parser": "^7.16.0",
+		"eslint": "^8.57.0",
+		"ts-node-dev": "^2.0.0",
+		"typescript": "^5.5.3"
+	}
+}
