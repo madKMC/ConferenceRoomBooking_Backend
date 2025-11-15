@@ -27,4 +27,15 @@ export class UsersService {
 	): Promise<BookingWithRoom[]> {
 		return this.bookingsRepo.findByUserId(userId, filters);
 	}
+
+	/**
+	 * List all users with optional search and pagination
+	 */
+	async listUsers(filters?: {
+		search?: string;
+		limit?: number;
+		offset?: number;
+	}) {
+		return this.usersRepo.list(filters);
+	}
 }

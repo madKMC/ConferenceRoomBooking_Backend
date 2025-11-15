@@ -26,6 +26,7 @@ export class BookingsController {
 				status: req.query.status as string | undefined,
 				room_id: req.query.room_id ? Number(req.query.room_id) : undefined,
 				user_id: req.query.user_id ? Number(req.query.user_id) : undefined,
+				date: req.query.date as string | undefined,
 				limit: req.query.limit ? Number(req.query.limit) : undefined,
 				offset: req.query.offset ? Number(req.query.offset) : undefined,
 			};
@@ -65,7 +66,7 @@ export class BookingsController {
 	/**
 	 * GET /bookings/:id
 	 * Get a booking by ID
-	 * Users can only view their own bookings, admins can view all
+	 * Users can view if they are: owner, invitee, or admin
 	 */
 	getBookingById = async (
 		req: Request,
@@ -74,16 +75,15 @@ export class BookingsController {
 	): Promise<void> => {
 		try {
 			const bookingId = Number(req.params.id);
-			const booking = await this.bookingsService.getBookingById(bookingId);
+			const requestingUserId = req.user!.userId;
+			const isAdmin = req.user!.role === 'admin';
 
-			// Check if user has permission to view this booking
-			if (req.user?.role !== 'admin' && booking.user_id !== req.user?.userId) {
-				throw new HttpError(
-					403,
-					'FORBIDDEN',
-					'You can only view your own bookings'
-				);
-			}
+			// The service will check permissions (owner, invitee, or admin)
+			const booking = await this.bookingsService.getBookingById(
+				bookingId,
+				requestingUserId,
+				isAdmin
+			);
 
 			res.status(200).json({
 				success: true,

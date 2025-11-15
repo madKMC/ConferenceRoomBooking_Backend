@@ -36,6 +36,13 @@ export class ConflictError extends HttpError {
 	}
 }
 
+export class ForbiddenError extends HttpError {
+	constructor(message: string = 'Forbidden', details?: any) {
+		super(403, 'FORBIDDEN', message, details);
+		this.name = 'ForbiddenError';
+	}
+}
+
 export class ValidationError extends HttpError {
 	constructor(message: string = 'Validation failed', details?: any) {
 		super(422, 'VALIDATION_ERROR', message, details);

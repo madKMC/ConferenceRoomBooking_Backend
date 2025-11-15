@@ -1,4 +1,4 @@
-import { PoolConnection, RowDataPacket } from 'mysql2/promise';
+import { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import { query } from '../config/db';
 import { Room, RoomWithAmenities, Amenity } from '../domain/zod/rooms.schema';
 
@@ -160,5 +160,106 @@ export class RoomsRepository {
 			end_time: Date;
 			status: string;
 		}>;
+	}
+
+	/**
+	 * Create a new room
+	 */
+	async create(data: {
+		name: string;
+		capacity: number;
+		floor: number;
+		description?: string;
+		is_active?: boolean;
+	}): Promise<Room> {
+		const sql = `
+			INSERT INTO rooms (name, capacity, floor, description, is_active)
+			VALUES (?, ?, ?, ?, ?)
+		`;
+
+		const result = await query<ResultSetHeader>(sql, [
+			data.name,
+			data.capacity,
+			data.floor,
+			data.description || null,
+			data.is_active !== undefined ? data.is_active : true,
+		]);
+
+		const roomId = result.insertId;
+
+		const room = await this.findById(roomId);
+		if (!room) {
+			throw new Error('Failed to create room');
+		}
+
+		return room;
+	}
+
+	/**
+	 * Update an existing room
+	 */
+	async update(
+		roomId: number,
+		data: {
+			name?: string;
+			capacity?: number;
+			floor?: number;
+			description?: string;
+			is_active?: boolean;
+		}
+	): Promise<Room> {
+		const fields: string[] = [];
+		const params: any[] = [];
+
+		if (data.name !== undefined) {
+			fields.push('name = ?');
+			params.push(data.name);
+		}
+
+		if (data.capacity !== undefined) {
+			fields.push('capacity = ?');
+			params.push(data.capacity);
+		}
+
+		if (data.floor !== undefined) {
+			fields.push('floor = ?');
+			params.push(data.floor);
+		}
+
+		if (data.description !== undefined) {
+			fields.push('description = ?');
+			params.push(data.description);
+		}
+
+		if (data.is_active !== undefined) {
+			fields.push('is_active = ?');
+			params.push(data.is_active);
+		}
+
+		params.push(roomId);
+
+		const sql = `
+			UPDATE rooms
+			SET ${fields.join(', ')}
+			WHERE id = ?
+		`;
+
+		await query(sql, params);
+
+		const room = await this.findById(roomId);
+		if (!room) {
+			throw new Error('Room not found after update');
+		}
+
+		return room;
+	}
+
+	/**
+	 * Delete a room (soft delete by setting is_active to false)
+	 */
+	async delete(roomId: number): Promise<boolean> {
+		const sql = 'UPDATE rooms SET is_active = FALSE WHERE id = ?';
+		const result = await query<ResultSetHeader>(sql, [roomId]);
+		return result.affectedRows > 0;
 	}
 }

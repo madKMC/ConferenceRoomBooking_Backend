@@ -7,7 +7,7 @@ import { HttpError } from '../utils/httpErrors';
  */
 export function authenticate(
 	req: Request,
-	res: Response,
+	_res: Response,
 	next: NextFunction
 ): void {
 	try {
@@ -34,7 +34,7 @@ export function authenticate(
  * Middleware to check if user has required role
  */
 export function requireRole(...roles: string[]) {
-	return (req: Request, res: Response, next: NextFunction): void => {
+	return (req: Request, _res: Response, next: NextFunction): void => {
 		if (!req.user) {
 			return next(
 				new HttpError(401, 'UNAUTHORIZED', 'Authentication required')
@@ -50,11 +50,16 @@ export function requireRole(...roles: string[]) {
 }
 
 /**
+ * Middleware to require admin role
+ */
+export const requireAdmin = requireRole('admin');
+
+/**
  * Optional authentication - attach user if token present, but don't require it
  */
 export function optionalAuth(
 	req: Request,
-	res: Response,
+	_res: Response,
 	next: NextFunction
 ): void {
 	try {

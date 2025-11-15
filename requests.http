@@ -217,3 +217,183 @@ Authorization: Bearer {{authToken}}
 ### Get bookings for non-existent user (should return 404)
 GET {{baseUrl}}/users/999/bookings
 Authorization: Bearer {{authToken}}
+
+### ============================================================================
+### BOOKING INVITATIONS (requires authentication)
+### ============================================================================
+
+### List all users (for inviting to bookings)
+GET {{baseUrl}}/users
+Authorization: Bearer {{authToken}}
+
+### Search users by name or email
+GET {{baseUrl}}/users?search=john
+Authorization: Bearer {{authToken}}
+
+### List users with pagination
+GET {{baseUrl}}/users?limit=10&offset=0
+Authorization: Bearer {{authToken}}
+
+### Search users with pagination
+GET {{baseUrl}}/users?search=doe&limit=5&offset=0
+Authorization: Bearer {{authToken}}
+
+### Add multiple invitees to a booking (owner only)
+POST {{baseUrl}}/bookings/1/invitees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "user_ids": [2, 3, 4]
+}
+
+### Add single invitee to a booking (owner only)
+POST {{baseUrl}}/bookings/1/invitees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "user_ids": [5]
+}
+
+### Get all invitees for a booking (owner, invitees, or admin)
+GET {{baseUrl}}/bookings/1/invitees
+Authorization: Bearer {{authToken}}
+
+### Remove an invitee from a booking (owner only)
+DELETE {{baseUrl}}/bookings/1/invitees/3
+Authorization: Bearer {{authToken}}
+
+### Accept an invitation (invitee only)
+PATCH {{baseUrl}}/bookings/1/invitation
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "accepted"
+}
+
+### Decline an invitation (invitee only)
+PATCH {{baseUrl}}/bookings/2/invitation
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "declined"
+}
+
+### Try to add too many invitees at once (should fail validation - max 20)
+POST {{baseUrl}}/bookings/1/invitees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "user_ids": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+}
+
+### Try to add empty invitee list (should fail validation)
+POST {{baseUrl}}/bookings/1/invitees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "user_ids": []
+}
+
+### Try to add invitees to someone else's booking (should fail with 403)
+POST {{baseUrl}}/bookings/2/invitees
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "user_ids": [4, 5]
+}
+
+### Try to remove invitee from someone else's booking (should fail with 403)
+DELETE {{baseUrl}}/bookings/2/invitees/3
+Authorization: Bearer {{authToken}}
+
+### Try to respond to non-existent invitation (should fail with 404)
+PATCH {{baseUrl}}/bookings/999/invitation
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "accepted"
+}
+
+### Try to respond with invalid status (should fail validation)
+PATCH {{baseUrl}}/bookings/1/invitation
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "maybe"
+}
+
+### Get invitees for non-existent booking (should fail with 404)
+GET {{baseUrl}}/bookings/999/invitees
+Authorization: Bearer {{authToken}}
+
+### ============================================================================
+### EMAIL TESTING (ADMIN ONLY)
+### ============================================================================
+
+### Verify SMTP connection (admin only)
+GET {{baseUrl}}/test-email/verify
+Authorization: Bearer {{authToken}}
+
+### Send a test email (admin only)
+POST {{baseUrl}}/test-email/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "to": "test@example.com",
+  "subject": "Test Email",
+  "message": "This is a test email to verify SMTP configuration is working correctly."
+}
+
+### ============================================================================
+### ANALYTICS (ADMIN ONLY)
+### ============================================================================
+
+### Get room utilization dashboard
+GET {{baseUrl}}/analytics/utilization?start=2025-11-01&end=2025-11-15
+Authorization: Bearer {{authToken}}
+
+### Get room utilization for last week
+GET {{baseUrl}}/analytics/utilization?start=2025-11-08&end=2025-11-15
+Authorization: Bearer {{authToken}}
+
+### Get daily booking trends
+GET {{baseUrl}}/analytics/bookings/daily?start=2025-11-01&end=2025-11-15
+Authorization: Bearer {{authToken}}
+
+### Get daily booking trends for last week
+GET {{baseUrl}}/analytics/bookings/daily?start=2025-11-08&end=2025-11-15
+Authorization: Bearer {{authToken}}
+
+### Get user booking history summary (all time)
+GET {{baseUrl}}/analytics/users/1/summary
+Authorization: Bearer {{authToken}}
+
+### Get user booking history summary with date range
+GET {{baseUrl}}/analytics/users/1/summary?start=2025-11-01&end=2025-11-15
+Authorization: Bearer {{authToken}}
+
+### Get user summary for non-existent user (should return 404)
+GET {{baseUrl}}/analytics/users/999/summary
+Authorization: Bearer {{authToken}}
+
+### Try analytics without admin role (should fail with 403)
+GET {{baseUrl}}/analytics/utilization?start=2025-11-01&end=2025-11-15
+Authorization: Bearer <regular_user_token>
+
+### Try analytics with invalid date format (should fail validation)
+GET {{baseUrl}}/analytics/utilization?start=2025-11-01&end=invalid-date
+Authorization: Bearer {{authToken}}
+
+### Try analytics with start > end (should fail validation)
+GET {{baseUrl}}/analytics/utilization?start=2025-11-15&end=2025-11-01
+Authorization: Bearer {{authToken}}

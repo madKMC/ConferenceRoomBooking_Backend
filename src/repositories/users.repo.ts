@@ -1,5 +1,5 @@
 import { RowDataPacket } from 'mysql2/promise';
-import { query } from '../config/db';
+import { query, getPool } from '../config/db';
 import { User } from '../domain/zod/users.schema';
 
 /**
@@ -46,5 +46,44 @@ export class UsersRepository {
 		}
 
 		return rows[0] as User;
+	}
+
+	/**
+	 * List all users (for invitation selection)
+	 * Excludes password hash for security
+	 */
+	async list(
+		options: {
+			search?: string;
+			limit?: number;
+			offset?: number;
+		} = {}
+	): Promise<Array<Omit<User, 'password_hash'>>> {
+		const { search, limit = 50, offset = 0 } = options;
+
+		let sql =
+			'SELECT id, email, first_name, last_name, phone, role, created_at, updated_at FROM users';
+		const params: (string | number)[] = [];
+
+		if (search && search.trim()) {
+			sql += ' WHERE email LIKE ? OR first_name LIKE ? OR last_name LIKE ?';
+			const searchPattern = `%${search.trim()}%`;
+			params.push(searchPattern, searchPattern, searchPattern);
+		}
+
+		sql += ' ORDER BY first_name, last_name';
+
+		if (limit) {
+			sql += ' LIMIT ?';
+			params.push(limit);
+
+			if (offset) {
+				sql += ' OFFSET ?';
+				params.push(offset);
+			}
+		}
+
+		const [rows] = await getPool().query<RowDataPacket[]>(sql, params);
+		return rows as Array<Omit<User, 'password_hash'>>;
 	}
 }

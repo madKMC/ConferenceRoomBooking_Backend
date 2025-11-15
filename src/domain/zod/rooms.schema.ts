@@ -15,9 +15,72 @@ export const getRoomsSchema = z.object({
 });
 
 /**
+ * Schema for getting a single room
+ */
+export const getRoomSchema = z.object({
+	params: z.object({
+		id: z.string().regex(/^\d+$/).transform(Number),
+	}),
+});
+
+/**
+ * Schema for creating a room
+ */
+export const createRoomSchema = z.object({
+	body: z.object({
+		name: z.string().min(1).max(100),
+		capacity: z.number().int().positive().max(100),
+		floor: z.number().int().min(0),
+		description: z.string().max(1000).optional(),
+		is_active: z.boolean().optional().default(true),
+	}),
+});
+
+/**
+ * Schema for updating a room
+ */
+export const updateRoomSchema = z.object({
+	params: z.object({
+		id: z.string().regex(/^\d+$/).transform(Number),
+	}),
+	body: z
+		.object({
+			name: z.string().min(1).max(100).optional(),
+			capacity: z.number().int().positive().max(100).optional(),
+			floor: z.number().int().min(0).optional(),
+			description: z.string().max(1000).optional(),
+			is_active: z.boolean().optional(),
+		})
+		.refine((data) => Object.keys(data).length > 0, {
+			message: 'At least one field must be provided for update',
+		}),
+});
+
+/**
+ * Schema for deleting a room
+ */
+export const deleteRoomSchema = z.object({
+	params: z.object({
+		id: z.string().regex(/^\d+$/).transform(Number),
+	}),
+});
+
+/**
  * Schema for getting room availability
  */
 export const getRoomAvailabilitySchema = z.object({
+	params: z.object({
+		id: z.string().regex(/^\d+$/).transform(Number),
+	}),
+	query: z.object({
+		date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+	}),
+});
+
+/**
+ * Schema for getting room bookings
+ */
+export const getRoomBookingsSchema = z.object({
 	params: z.object({
 		id: z.string().regex(/^\d+$/).transform(Number),
 	}),

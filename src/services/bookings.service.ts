@@ -2,6 +2,7 @@ import { withTransaction } from '../config/db';
 import { BookingsRepository } from '../repositories/bookings.repo';
 import { RoomsRepository } from '../repositories/rooms.repo';
 import { UsersRepository } from '../repositories/users.repo';
+import { InvitationsRepository } from '../repositories/invitations.repo';
 import {
 	Booking,
 	CreateBookingInput,
@@ -12,8 +13,11 @@ import {
 	NotFoundError,
 	ConflictError,
 	BadRequestError,
+	ForbiddenError,
 } from '../utils/httpErrors';
 import { validateBusinessHours, validateDuration } from '../utils/time';
+import { sendBookingCancelledEmail } from './notifications/bookingNotification';
+import { logger } from '../utils/logger';
 
 /**
  * Service for booking-related business logic
@@ -23,11 +27,13 @@ export class BookingsService {
 	private bookingsRepo: BookingsRepository;
 	private roomsRepo: RoomsRepository;
 	private usersRepo: UsersRepository;
+	private invitationsRepo: InvitationsRepository;
 
 	constructor() {
 		this.bookingsRepo = new BookingsRepository();
 		this.roomsRepo = new RoomsRepository();
 		this.usersRepo = new UsersRepository();
+		this.invitationsRepo = new InvitationsRepository();
 	}
 
 	/**
@@ -79,12 +85,38 @@ export class BookingsService {
 
 	/**
 	 * Get a booking by ID
+	 * Users can view if they are: owner, invitee, or admin
 	 */
-	async getBookingById(bookingId: number): Promise<Booking> {
+	async getBookingById(
+		bookingId: number,
+		requestingUserId?: number,
+		isAdmin?: boolean
+	): Promise<BookingWithRoom> {
 		const booking = await this.bookingsRepo.findById(bookingId);
 
 		if (!booking) {
 			throw new NotFoundError('Booking not found');
+		}
+
+		// If user ID and role are provided, check permissions
+		if (requestingUserId !== undefined && isAdmin !== undefined) {
+			// Admins can view any booking
+			if (!isAdmin) {
+				// Check if user is the owner
+				const isOwner = booking.user_id === requestingUserId;
+
+				if (!isOwner) {
+					// Check if user is invited
+					const isInvited = await this.invitationsRepo.isUserInvited(
+						bookingId,
+						requestingUserId
+					);
+
+					if (!isInvited) {
+						throw new ForbiddenError('Access denied to this booking');
+					}
+				}
+			}
 		}
 
 		return booking;
@@ -191,10 +223,39 @@ export class BookingsService {
 				return;
 			}
 
+			// Get invitees who accepted before cancelling
+			const invitees = await this.invitationsRepo.getInviteesByBooking(
+				bookingId
+			);
+			const acceptedInvitees = invitees.filter(
+				(inv) => inv.status === 'accepted'
+			);
+
 			const cancelled = await this.bookingsRepo.cancel(bookingId, connection);
 
 			if (!cancelled) {
 				throw new NotFoundError('Booking not found');
+			}
+
+			// Send cancellation emails to accepted invitees (async, don't block)
+			if (acceptedInvitees.length > 0) {
+				const owner = await this.usersRepo.findById(booking.user_id);
+				if (owner) {
+					for (const invitee of acceptedInvitees) {
+						sendBookingCancelledEmail({
+							userName: `${invitee.first_name} ${invitee.last_name}`,
+							userEmail: invitee.email,
+							booking,
+							ownerName: `${owner.first_name} ${owner.last_name}`,
+						}).catch((error) => {
+							logger.error('Failed to send cancellation email', {
+								bookingId,
+								userId: invitee.user_id,
+								error: error instanceof Error ? error.message : 'Unknown error',
+							});
+						});
+					}
+				}
 			}
 		});
 	}
@@ -226,6 +287,7 @@ export class BookingsService {
 		status?: string;
 		room_id?: number;
 		user_id?: number;
+		date?: string;
 		limit?: number;
 		offset?: number;
 	}): Promise<BookingWithRoom[]> {

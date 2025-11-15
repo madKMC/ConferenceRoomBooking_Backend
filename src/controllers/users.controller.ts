@@ -54,4 +54,42 @@ export class UsersController {
 			}
 		}
 	};
+
+	/**
+	 * GET /users
+	 * List all users with optional search and pagination
+	 * Authenticated users can list users for inviting to bookings
+	 */
+	listUsers = async (
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<void> => {
+		try {
+			const filters: {
+				search?: string;
+				limit?: number;
+				offset?: number;
+			} = {};
+
+			if (req.query.search) {
+				filters.search = req.query.search as string;
+			}
+			if (req.query.limit) {
+				filters.limit = Number(req.query.limit);
+			}
+			if (req.query.offset !== undefined) {
+				filters.offset = Number(req.query.offset);
+			}
+
+			const users = await this.usersService.listUsers(filters);
+
+			res.status(200).json({
+				success: true,
+				data: users,
+			});
+		} catch (error) {
+			next(error);
+		}
+	};
 }

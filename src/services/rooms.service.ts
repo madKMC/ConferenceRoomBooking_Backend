@@ -2,6 +2,7 @@ import { RoomsRepository } from '../repositories/rooms.repo';
 import {
 	RoomWithAmenities,
 	RoomAvailability,
+	Room,
 } from '../domain/zod/rooms.schema';
 import { NotFoundError } from '../utils/httpErrors';
 import { generateTimeSlots, parseDate, BUSINESS_HOURS } from '../utils/time';
@@ -26,6 +27,80 @@ export class RoomsService {
 		offset?: number;
 	}): Promise<RoomWithAmenities[]> {
 		return this.roomsRepo.findAll(filters);
+	}
+
+	/**
+	 * Get a single room by ID
+	 */
+	async getRoomById(roomId: number): Promise<Room> {
+		const room = await this.roomsRepo.findById(roomId);
+		if (!room) {
+			throw new NotFoundError('Room not found');
+		}
+		return room;
+	}
+
+	/**
+	 * Create a new room
+	 */
+	async createRoom(data: {
+		name: string;
+		capacity: number;
+		floor: number;
+		description?: string;
+		is_active?: boolean;
+	}): Promise<Room> {
+		return this.roomsRepo.create(data);
+	}
+
+	/**
+	 * Update an existing room
+	 */
+	async updateRoom(
+		roomId: number,
+		data: {
+			name?: string;
+			capacity?: number;
+			floor?: number;
+			description?: string;
+			is_active?: boolean;
+		}
+	): Promise<Room> {
+		// Verify room exists
+		await this.getRoomById(roomId);
+		return this.roomsRepo.update(roomId, data);
+	}
+
+	/**
+	 * Get bookings for a specific room on a specific date
+	 */
+	async getRoomBookings(
+		roomId: number,
+		date: string
+	): Promise<
+		Array<{
+			id: number;
+			title: string;
+			start_time: Date;
+			end_time: Date;
+			status: string;
+		}>
+	> {
+		// Verify room exists
+		await this.getRoomById(roomId);
+		return this.roomsRepo.findBookingsByRoomAndDate(roomId, date);
+	}
+
+	/**
+	 * Delete a room (soft delete)
+	 */
+	async deleteRoom(roomId: number): Promise<void> {
+		// Verify room exists
+		await this.getRoomById(roomId);
+		const deleted = await this.roomsRepo.delete(roomId);
+		if (!deleted) {
+			throw new NotFoundError('Room not found');
+		}
 	}
 
 	/**

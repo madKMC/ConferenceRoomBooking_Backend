@@ -4,10 +4,16 @@ import { z } from 'zod';
  * Helper function to normalize datetime strings for MySQL
  * Converts ISO 8601 datetime strings (with or without 'Z') to MySQL DATETIME format
  * Example: "2025-11-15T13:00:00Z" -> "2025-11-15 13:00:00"
+ * Example: "2025-11-15T13:00:00" -> "2025-11-15 13:00:00"
  */
 const normalizeDatetime = (dateStr: string): string => {
 	// Parse the date string and convert to MySQL format (YYYY-MM-DD HH:MM:SS)
 	const date = new Date(dateStr);
+
+	// Check if date is valid
+	if (isNaN(date.getTime())) {
+		throw new Error('Invalid date');
+	}
 
 	// Format to MySQL datetime format
 	const year = date.getFullYear();
@@ -19,6 +25,29 @@ const normalizeDatetime = (dateStr: string): string => {
 
 	return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
+
+/**
+ * Validate datetime string format
+ * Accepts ISO 8601 format with or without timezone (Z)
+ */
+const datetimeString = z
+	.string()
+	.refine(
+		(val) => {
+			// Accept formats like:
+			// 2025-11-20T11:00:00Z
+			// 2025-11-20T11:00:00
+			// 2025-11-20T11:00:00.000Z
+			const iso8601Regex =
+				/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?$/;
+			return iso8601Regex.test(val) && !isNaN(new Date(val).getTime());
+		},
+		{
+			message:
+				'Invalid datetime format. Expected ISO 8601 format (e.g., 2025-11-20T11:00:00 or 2025-11-20T11:00:00Z)',
+		}
+	)
+	.transform(normalizeDatetime);
 
 /**
  * Booking status enum
@@ -41,8 +70,8 @@ export const createBookingSchema = z.object({
 		user_id: z.number().int().positive(),
 		title: z.string().min(1).max(255),
 		description: z.string().max(1000).optional(),
-		start_time: z.string().datetime().transform(normalizeDatetime),
-		end_time: z.string().datetime().transform(normalizeDatetime),
+		start_time: datetimeString,
+		end_time: datetimeString,
 	}),
 });
 
@@ -60,8 +89,8 @@ export const updateBookingSchema = z.object({
 			room_id: z.number().int().positive().optional(),
 			title: z.string().min(1).max(255).optional(),
 			description: z.string().max(1000).optional(),
-			start_time: z.string().datetime().transform(normalizeDatetime).optional(),
-			end_time: z.string().datetime().transform(normalizeDatetime).optional(),
+			start_time: datetimeString.optional(),
+			end_time: datetimeString.optional(),
 			status: bookingStatusSchema.optional(),
 		})
 		.refine((data) => Object.keys(data).length > 0, {
@@ -114,6 +143,10 @@ export const getAllBookingsSchema = z.object({
 			status: bookingStatusSchema.optional(),
 			room_id: z.string().regex(/^\d+$/).transform(Number).optional(),
 			user_id: z.string().regex(/^\d+$/).transform(Number).optional(),
+			date: z
+				.string()
+				.regex(/^\d{4}-\d{2}-\d{2}$/)
+				.optional(),
 			limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 			offset: z.string().regex(/^\d+$/).transform(Number).optional(),
 		})

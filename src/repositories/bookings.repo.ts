@@ -6,11 +6,13 @@ import {
 	CreateBookingInput,
 	UpdateBookingInput,
 } from '../domain/zod/bookings.schema';
+import { InvitationsRepository } from './invitations.repo';
 
 /**
  * Repository for booking-related database operations
  */
 export class BookingsRepository {
+	private invitationsRepo = new InvitationsRepository();
 	/**
 	 * Create a new booking
 	 */
@@ -54,14 +56,17 @@ export class BookingsRepository {
 	async findById(
 		bookingId: number,
 		connection?: PoolConnection
-	): Promise<Booking | null> {
+	): Promise<BookingWithRoom | null> {
 		const sql = `
       SELECT 
-        id, room_id, user_id, title, description,
-        start_time, end_time, status,
-        created_at, updated_at
-      FROM bookings
-      WHERE id = ?
+        b.id, b.room_id, b.user_id, b.title, b.description,
+        b.start_time, b.end_time, b.status,
+        b.created_at, b.updated_at,
+        r.name as room_name,
+        r.capacity as room_capacity
+      FROM bookings b
+      INNER JOIN rooms r ON b.room_id = r.id
+      WHERE b.id = ?
     `;
 
 		const rows = connection
@@ -72,7 +77,7 @@ export class BookingsRepository {
 			return null;
 		}
 
-		return rows[0] as Booking;
+		return rows[0] as BookingWithRoom;
 	}
 
 	/**
@@ -148,7 +153,7 @@ export class BookingsRepository {
 	}
 
 	/**
-	 * Find all bookings for a user
+	 * Find all bookings for a user (as owner OR invitee)
 	 */
 	async findByUserId(
 		userId: number,
@@ -159,7 +164,7 @@ export class BookingsRepository {
 		}
 	): Promise<BookingWithRoom[]> {
 		let sql = `
-      SELECT 
+      SELECT DISTINCT
         b.id,
         b.room_id,
         b.user_id,
@@ -171,13 +176,18 @@ export class BookingsRepository {
         b.created_at,
         b.updated_at,
         r.name as room_name,
-        r.capacity as room_capacity
+        r.capacity as room_capacity,
+        CASE 
+          WHEN b.user_id = ? THEN 'owner'
+          ELSE 'invitee'
+        END AS role
       FROM bookings b
       INNER JOIN rooms r ON b.room_id = r.id
-      WHERE b.user_id = ?
+      LEFT JOIN booking_invitations bi ON b.id = bi.booking_id
+      WHERE b.user_id = ? OR bi.user_id = ?
     `;
 
-		const params: any[] = [userId];
+		const params: any[] = [userId, userId, userId];
 
 		if (filters?.status) {
 			sql += ' AND b.status = ?';
@@ -207,6 +217,7 @@ export class BookingsRepository {
 		status?: string;
 		room_id?: number;
 		user_id?: number;
+		date?: string;
 		limit?: number;
 		offset?: number;
 	}): Promise<BookingWithRoom[]> {
@@ -244,6 +255,11 @@ export class BookingsRepository {
 		if (filters?.user_id) {
 			sql += ' AND b.user_id = ?';
 			params.push(filters.user_id);
+		}
+
+		if (filters?.date) {
+			sql += ' AND DATE(b.start_time) = ?';
+			params.push(filters.date);
 		}
 
 		sql += ' ORDER BY b.start_time DESC';

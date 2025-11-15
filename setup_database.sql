@@ -222,6 +222,41 @@ END//
 DELIMITER ;
 
 -- ============================================================================
+-- TABLE: booking_invitations
+-- ============================================================================
+-- Tracks which users are invited to bookings
+-- Allows collaborative bookings where multiple users can attend
+-- Only the booking owner can invite/remove users
+-- ============================================================================
+CREATE TABLE booking_invitations (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    status ENUM('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
+    invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP NULL,
+    
+    -- Constraints
+    CONSTRAINT fk_booking_invitations_booking
+        FOREIGN KEY (booking_id) REFERENCES bookings(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    CONSTRAINT fk_booking_invitations_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    -- Prevent duplicate invitations
+    UNIQUE KEY unique_booking_user (booking_id, user_id),
+    
+    -- Indexes for query performance
+    INDEX idx_booking (booking_id),
+    INDEX idx_user (user_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- SAMPLE DATA - USERS
 -- ============================================================================
 -- Note: In production, passwords should be hashed using bcrypt with a proper salt
@@ -353,6 +388,24 @@ INSERT INTO bookings (room_id, user_id, title, description, start_time, end_time
 -- Past bookings (completed)
 (6, 6, 'Marketing Review', 'Campaign performance analysis', 
     '2025-11-11 10:00:00', '2025-11-11 11:30:00', 'completed');
+
+-- ============================================================================
+-- SAMPLE DATA - BOOKING INVITATIONS
+-- ============================================================================
+-- Invite users to existing bookings
+INSERT INTO booking_invitations (booking_id, user_id, status, responded_at) VALUES
+-- Jane (user_id=3) invited to John's Q4 Strategy Meeting (booking_id=1)
+(1, 3, 'accepted', '2025-11-11 08:30:00'),
+-- Bob (user_id=4) invited to John's Q4 Strategy Meeting
+(1, 4, 'accepted', '2025-11-11 09:00:00'),
+-- John (user_id=2) invited to Jane's Product Design Workshop (booking_id=2)
+(2, 2, 'accepted', '2025-11-11 13:45:00'),
+-- Alice (user_id=5) invited to Jane's Product Design Workshop
+(2, 5, 'pending', NULL),
+-- Charlie (user_id=6) invited to Alice's Team Standup (booking_id=3)
+(3, 6, 'accepted', '2025-11-11 16:20:00'),
+-- Bob (user_id=4) invited to Alice's Client Presentation (booking_id=4)
+(4, 4, 'declined', '2025-11-12 09:15:00');
 
 -- ============================================================================
 -- END OF SCHEMA

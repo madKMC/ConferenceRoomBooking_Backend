@@ -51,14 +51,14 @@ export class AuthRepository {
 			data.phone || null,
 		];
 
-		const executor = connection || { execute: query };
-		const result = connection
-			? await connection.execute<ResultSetHeader>(sql, params)
-			: await query<ResultSetHeader>(sql, params);
-
-		const insertId = connection
-			? (result[0] as ResultSetHeader).insertId
-			: (result as unknown as ResultSetHeader).insertId;
+		let insertId: number;
+		if (connection) {
+			const [result] = await connection.execute<ResultSetHeader>(sql, params);
+			insertId = result.insertId;
+		} else {
+			const result = await query<ResultSetHeader>(sql, params);
+			insertId = result.insertId;
+		}
 
 		// Fetch the created user
 		const selectSql = `

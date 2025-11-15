@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from 'express';
+import cors from 'cors';
 import { correlationIdMiddleware } from './middlewares/correlationId';
 import { errorHandler } from './middlewares/errorHandler';
 import routes from './routes';
@@ -9,6 +10,16 @@ import { logger } from './utils/logger';
  */
 export function createApp(): Application {
 	const app = express();
+
+	// CORS middleware - Allow frontend access
+	app.use(
+		cors({
+			origin: ['http://localhost:5173', 'http://localhost:3000'],
+			credentials: true,
+			methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+			allowedHeaders: ['Content-Type', 'Authorization'],
+		})
+	);
 
 	// Body parsing middleware
 	app.use(express.json());
