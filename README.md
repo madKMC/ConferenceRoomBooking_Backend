@@ -14,7 +14,10 @@ A production-grade RESTful API for managing conference room bookings in a co-wor
   - Booking duration: 30 minutes - 4 hours
   - Automatic double-booking prevention
 - **Clean Architecture**: Routes → Controllers → Services → Repositories
-- **Transaction Safety**: ACID-compliant booking operations
+- **Transaction Safety**: ACID-compliant operations with automatic rollback on errors
+  - All booking operations (create, update, cancel) wrapped in transactions
+  - All invitation operations (add, remove, respond) wrapped in transactions
+  - Atomic multi-step operations prevent partial failures
 - **Validation**: Comprehensive request validation with Zod (supports flexible datetime formats)
 - **Error Handling**: Standardized error responses with correlation IDs
 - **Logging**: File-based logging with automatic rotation (`logs/app.log`, `logs/error.log`)
@@ -908,6 +911,7 @@ Content-Type: application/json
 - Duplicate invitations are handled automatically (re-invitation resets status to pending)
 - Invitations are automatically deleted when a booking is deleted (CASCADE)
 - **Invitation Expiration**: Users cannot accept/decline invitations after the booking start time has passed. Expired pending invitations show `display_status: "expired"` in API responses.
+- **Transaction Safety**: All invitation operations (add, remove, respond) are wrapped in database transactions to ensure atomicity and prevent partial failures
 
 ## Room Management (CRUD)
 
@@ -1239,14 +1243,20 @@ src/
 │   └── users.schema.ts      # User validation schemas
 ├── repositories/
 │   ├── auth.repo.ts         # Auth data access
-│   ├── bookings.repo.ts     # Booking data access
+│   ├── bookings.repo.ts     # Booking data access (with transaction support)
+│   ├── invitations.repo.ts  # Invitation data access (with transaction support)
 │   ├── rooms.repo.ts        # Room data access
-│   └── users.repo.ts        # User data access
+│   └── users.repo.ts        # User data access (with transaction support)
 ├── services/
 │   ├── auth.service.ts      # Auth business logic (bcrypt, JWT)
-│   ├── bookings.service.ts  # Booking business logic
+│   ├── bookings.service.ts  # Booking business logic (transactional)
+│   ├── invitations.service.ts # Invitation business logic (transactional)
 │   ├── rooms.service.ts     # Room business logic
-│   └── users.service.ts     # User business logic
+│   ├── users.service.ts     # User business logic
+│   └── notifications/
+│       └── bookingNotification.ts # Email templates for invitations
+├── lib/
+│   └── mailer.ts            # SMTP email sending utility
 ├── controllers/
 │   ├── auth.controller.ts   # Auth endpoints
 │   ├── bookings.controller.ts

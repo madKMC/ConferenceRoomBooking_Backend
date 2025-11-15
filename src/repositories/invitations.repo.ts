@@ -1,4 +1,4 @@
-import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { RowDataPacket, ResultSetHeader, PoolConnection } from 'mysql2/promise';
 import { getPool } from '../config/db';
 
 export interface BookingInvitation {
@@ -27,7 +27,11 @@ export class InvitationsRepository {
 	/**
 	 * Add invitees to a booking (bulk insert with duplicate handling)
 	 */
-	async addInvitees(bookingId: number, userIds: number[]): Promise<void> {
+	async addInvitees(
+		bookingId: number,
+		userIds: number[],
+		connection?: PoolConnection
+	): Promise<void> {
 		if (userIds.length === 0) return;
 
 		const values = userIds
@@ -40,19 +44,28 @@ export class InvitationsRepository {
 			ON DUPLICATE KEY UPDATE invited_at = CURRENT_TIMESTAMP, status = 'pending'
 		`;
 
-		await this.pool.execute(query);
+		if (connection) {
+			await connection.execute(query);
+		} else {
+			await this.pool.execute(query);
+		}
 	}
 
 	/**
 	 * Remove an invitee from a booking
 	 */
-	async removeInvitee(bookingId: number, userId: number): Promise<boolean> {
+	async removeInvitee(
+		bookingId: number,
+		userId: number,
+		connection?: PoolConnection
+	): Promise<boolean> {
 		const query = `
 			DELETE FROM booking_invitations
 			WHERE booking_id = ? AND user_id = ?
 		`;
 
-		const [result] = await this.pool.execute<ResultSetHeader>(query, [
+		const executor = connection || this.pool;
+		const [result] = await executor.execute<ResultSetHeader>(query, [
 			bookingId,
 			userId,
 		]);
@@ -62,7 +75,10 @@ export class InvitationsRepository {
 	/**
 	 * Get all invitees for a booking
 	 */
-	async getInviteesByBooking(bookingId: number): Promise<InvitationWithUser[]> {
+	async getInviteesByBooking(
+		bookingId: number,
+		connection?: PoolConnection
+	): Promise<InvitationWithUser[]> {
 		const query = `
 			SELECT 
 				bi.id,
@@ -86,7 +102,8 @@ export class InvitationsRepository {
 			ORDER BY bi.invited_at DESC
 		`;
 
-		const [rows] = await this.pool.execute<RowDataPacket[]>(query, [bookingId]);
+		const executor = connection || this.pool;
+		const [rows] = await executor.execute<RowDataPacket[]>(query, [bookingId]);
 		return rows as InvitationWithUser[];
 	}
 
@@ -96,7 +113,8 @@ export class InvitationsRepository {
 	async updateStatus(
 		bookingId: number,
 		userId: number,
-		status: 'accepted' | 'declined'
+		status: 'accepted' | 'declined',
+		connection?: PoolConnection
 	): Promise<boolean> {
 		const query = `
 			UPDATE booking_invitations
@@ -104,7 +122,8 @@ export class InvitationsRepository {
 			WHERE booking_id = ? AND user_id = ?
 		`;
 
-		const [result] = await this.pool.execute<ResultSetHeader>(query, [
+		const executor = connection || this.pool;
+		const [result] = await executor.execute<ResultSetHeader>(query, [
 			status,
 			bookingId,
 			userId,
@@ -116,13 +135,18 @@ export class InvitationsRepository {
 	/**
 	 * Check if a user is invited to a booking
 	 */
-	async isUserInvited(bookingId: number, userId: number): Promise<boolean> {
+	async isUserInvited(
+		bookingId: number,
+		userId: number,
+		connection?: PoolConnection
+	): Promise<boolean> {
 		const query = `
 			SELECT id FROM booking_invitations
 			WHERE booking_id = ? AND user_id = ?
 		`;
 
-		const [rows] = await this.pool.execute<RowDataPacket[]>(query, [
+		const executor = connection || this.pool;
+		const [rows] = await executor.execute<RowDataPacket[]>(query, [
 			bookingId,
 			userId,
 		]);

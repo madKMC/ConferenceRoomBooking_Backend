@@ -1,4 +1,4 @@
-import { RowDataPacket } from 'mysql2/promise';
+import { RowDataPacket, PoolConnection } from 'mysql2/promise';
 import { query, getPool } from '../config/db';
 import { User } from '../domain/zod/users.schema';
 
@@ -9,7 +9,10 @@ export class UsersRepository {
 	/**
 	 * Find a user by ID
 	 */
-	async findById(userId: number): Promise<User | null> {
+	async findById(
+		userId: number,
+		connection?: PoolConnection
+	): Promise<User | null> {
 		const sql = `
       SELECT 
         id, email, first_name, last_name, phone,
@@ -18,7 +21,9 @@ export class UsersRepository {
       WHERE id = ?
     `;
 
-		const rows = await query<RowDataPacket[]>(sql, [userId]);
+		const rows = connection
+			? ((await connection.execute(sql, [userId]))[0] as RowDataPacket[])
+			: await query<RowDataPacket[]>(sql, [userId]);
 
 		if (rows.length === 0) {
 			return null;
