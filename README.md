@@ -135,46 +135,55 @@ The `setup_database.sql` script will:
 
 ### 3. Environment Configuration
 
-Copy the example environment file:
+Create a `.env` file in the root directory with the following configuration:
 
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your configuration:
+#### Required Variables
 
 ```env
-PORT=3000
-NODE_ENV=development
+# Server Configuration
+PORT=3000                    # Port for API server (default: 3000)
+NODE_ENV=development         # Environment: development | production | test
 
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_DATABASE=conference_booking
-DB_CONNECTION_LIMIT=10
+# Database Configuration (Required)
+DB_HOST=localhost           # MySQL host
+DB_PORT=3306                # MySQL port (default: 3306)
+DB_USER=root                # MySQL username
+DB_PASSWORD=your_password   # MySQL password
+DB_DATABASE=conference_booking  # Database name
+DB_CONNECTION_LIMIT=10      # Connection pool size (default: 10)
 
-TZ=Africa/Johannesburg
+# Timezone
+TZ=Africa/Johannesburg      # Server timezone for date/time operations
 
-# JWT Configuration
-JWT_SECRET=your-secret-key-change-this-in-production
-JWT_EXPIRES_IN=7d
-
-# SMTP Email Configuration
-SMTP_HOST=mail.yourdomain.com
-SMTP_PORT=587
-SMTP_USER=noreply@yourdomain.com
-SMTP_PASS=your-smtp-password
-SMTP_FROM=Conference Room Booking <noreply@yourdomain.com>
-
-# Frontend URL (for email links)
-FRONTEND_URL=http://localhost:4200
+# JWT Authentication (Required)
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=7d           # Token expiration (e.g., 7d, 24h, 60m)
 ```
 
-**Important**:
+#### Email Configuration (Required for Notifications)
 
-- Change `JWT_SECRET` to a secure random string in production
+```env
+# SMTP Settings (cPanel/Webmail)
+SMTP_HOST=mail.yourdomain.com                    # Your SMTP server
+SMTP_PORT=587                                     # 587 (TLS) or 465 (SSL)
+SMTP_USER=noreply@yourdomain.com                 # SMTP username
+SMTP_PASS=your-smtp-password                     # SMTP password
+SMTP_FROM=Conference Room Booking <noreply@yourdomain.com>  # From address
+
+# Frontend URL (for email links)
+FRONTEND_URL=http://localhost:4200               # Your frontend application URL
+```
+
+#### Security Notes
+
+⚠️ **Important:**
+
+- `JWT_SECRET` must be kept secure and changed in production (use at least 32 random characters)
+- The example secret works with sample data/login credentials provided
+- Never commit `.env` file to version control (already in `.gitignore`)
+- Use strong passwords for production databases
 - Configure SMTP settings with your cPanel hosting credentials (typically port 587 for TLS or 465 for SSL)
+- Change default admin password after first login
 
 ### 4. Run the Application
 
