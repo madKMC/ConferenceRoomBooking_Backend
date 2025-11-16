@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-testing-only';
 const JWT_EXPIRES_IN = '1h';
 
 interface TokenPayload {
-	id: number;
+	userId: number;
 	email: string;
 	role: string;
 }
@@ -28,7 +28,7 @@ export function generateToken(payload: TokenPayload): string {
  */
 export function generateAdminToken(): string {
 	return generateToken({
-		id: TEST_IDS.ADMIN_USER,
+		userId: TEST_IDS.ADMIN_USER,
 		email: 'admin@test.com',
 		role: 'admin',
 	});
@@ -47,7 +47,7 @@ export function generateUserToken(userId: number = TEST_IDS.USER_1): string {
 	};
 
 	return generateToken({
-		id: userId,
+		userId: userId,
 		email: userEmails[userId] || `user${userId}@test.com`,
 		role: 'user',
 	});
@@ -59,7 +59,7 @@ export function generateUserToken(userId: number = TEST_IDS.USER_1): string {
 export function generateExpiredToken(): string {
 	return jwt.sign(
 		{
-			id: TEST_IDS.USER_1,
+			userId: TEST_IDS.USER_1,
 			email: 'user1@test.com',
 			role: 'user',
 		},
@@ -76,7 +76,7 @@ export function generateExpiredToken(): string {
 export function generateInvalidSignatureToken(): string {
 	return jwt.sign(
 		{
-			id: TEST_IDS.USER_1,
+			userId: TEST_IDS.USER_1,
 			email: 'user1@test.com',
 			role: 'user',
 		},
