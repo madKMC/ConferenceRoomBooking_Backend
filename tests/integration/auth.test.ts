@@ -5,13 +5,11 @@
 import request from 'supertest';
 import { createApp } from '../../src/app';
 import {
-	generateAdminToken,
 	generateUserToken,
 	generateExpiredToken,
 	generateInvalidSignatureToken,
 	TEST_CREDENTIALS,
 } from '../helpers/authHelper';
-import { testDb } from '../helpers/testDb';
 
 const app = createApp();
 

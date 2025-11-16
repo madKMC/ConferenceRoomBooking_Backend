@@ -5,7 +5,7 @@
  */
 import request from 'supertest';
 import { createApp } from '../../src/app';
-import { getAdminAuthHeader, getUserAuthHeader } from '../helpers/authHelper';
+import { getUserAuthHeader } from '../helpers/authHelper';
 import { testDb, TEST_IDS } from '../helpers/testDb';
 
 const app = createApp();

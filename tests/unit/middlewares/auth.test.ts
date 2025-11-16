@@ -4,7 +4,7 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import { authenticate, requireRole, requireAdmin } from '../../../src/middlewares/auth';
-import { generateUserToken, generateAdminToken, generateExpiredToken } from '../../helpers/authHelper';
+import { generateUserToken, generateExpiredToken } from '../../helpers/authHelper';
 import { TEST_IDS } from '../../helpers/testDb';
 
 describe('Auth Middleware Unit Tests', () => {
