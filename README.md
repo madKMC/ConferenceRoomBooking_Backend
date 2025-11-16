@@ -2,6 +2,12 @@
 
 A production-grade RESTful API for managing conference room bookings in a co-working space. Built with Node.js, Express, TypeScript, and MySQL with JWT-based authentication and role-based authorization.
 
+## API Documentation
+
+📘 **Interactive API Documentation**: [SwaggerHub - Conference Room Booking API](https://app.swaggerhub.com/apis/cairnsforge/conference-room-booking-api/1.0.0)
+
+The complete API specification is available on SwaggerHub, including detailed endpoint documentation, request/response schemas, and interactive testing capabilities.
+
 ## Features
 
 - **Authentication & Authorization**: JWT-based auth with admin/user role-based access control
@@ -100,13 +106,13 @@ npm install
 
 ### 2. Database Setup
 
-Create the database and tables:
+Create the database, tables, and seed with sample data:
 
 ```bash
 # Login to MySQL
 mysql -u root -p
 
-# Run the schema file
+# Run the schema file (includes sample data)
 source setup_database.sql
 ```
 
@@ -115,6 +121,17 @@ Or using command line:
 ```bash
 mysql -u root -p < setup_database.sql
 ```
+
+The `setup_database.sql` script will:
+
+- Create the `conference_booking` database
+- Create all required tables with proper indexes and foreign keys
+- Seed the database with sample data:
+  - **6 users** (1 admin + 5 regular users with hashed passwords)
+  - **5 conference rooms** with various capacities and amenities
+  - **10 amenities** (projector, whiteboard, video conferencing, etc.)
+  - **Sample bookings** demonstrating various time slots
+  - **Booking invitations** showing collaborative booking examples
 
 ### 3. Environment Configuration
 
